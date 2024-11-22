@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de Alumnos</title>
 </head>
 <body>
@@ -11,15 +12,19 @@
     <form method="POST">
         <input type="hidden" name="action" value="add">
         <label for="name">Nombre:</label>
-        <input type="text" name="name" required>
+        <input type="text" name="name" placeholder="Introduce el nombre del alumno" required>
         <button type="submit">Añadir Alumno</button>
     </form>
 
     <!-- Formulario para eliminar alumno -->
     <form method="POST">
         <input type="hidden" name="action" value="delete">
-        <label for="id">ID del Alumno:</label>
-        <input type="number" name="id" required>
+        <label for="id">Selecciona un Alumno para Eliminar:</label>
+        <select name="id" required>
+            {% for student in students %}
+                <option value="{{ student[0] }}">{{ student[1] }} (ID: {{ student[0] }})</option>
+            {% endfor %}
+        </select>
         <button type="submit">Eliminar Alumno</button>
     </form>
 
@@ -27,7 +32,10 @@
     <h2>Lista de Alumnos</h2>
     <ul>
         {% for student in students %}
-            <li>ID: {{ student[0] }} - {{ student[1] }}</li>
+            <li>
+                ID: {{ student[0] }} - Nombre: {{ student[1] }}
+                <a href="/qrcodes/{{ student[0] }}" target="_blank">Ver QR</a>
+            </li>
         {% endfor %}
     </ul>
 </body>

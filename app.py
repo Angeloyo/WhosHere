@@ -1,4 +1,4 @@
-from flask import Flask, request, Response, render_template, redirect, url_for
+from flask import Flask, request, Response, render_template, redirect, url_for, send_file
 from database import init_db, add_student, delete_student, get_students
 import cv2
 import numpy as np
@@ -29,6 +29,12 @@ def admin():
     students = get_students()
     return render_template('admin.html', students=students)
 
+@app.route('/qrcodes/<int:student_id>')
+def get_qr(student_id):
+    # Enviar el archivo QR correspondiente
+    filepath = f"qrcodes/{student_id}.png"
+    return send_file(filepath, mimetype='image/png')
+
 @app.route('/upload_video', methods=['POST'])
 def upload_video():
     global frame_global
@@ -54,4 +60,4 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run()
