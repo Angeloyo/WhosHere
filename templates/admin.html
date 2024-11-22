@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Administración de Alumnos</title>
+</head>
+<body>
+    <h1>Administrar Alumnos</h1>
+
+    <!-- Formulario para añadir alumno -->
+    <form method="POST">
+        <input type="hidden" name="action" value="add">
+        <label for="name">Nombre:</label>
+        <input type="text" name="name" required>
+        <button type="submit">Añadir Alumno</button>
+    </form>
+
+    <!-- Formulario para eliminar alumno -->
+    <form method="POST">
+        <input type="hidden" name="action" value="delete">
+        <label for="id">ID del Alumno:</label>
+        <input type="number" name="id" required>
+        <button type="submit">Eliminar Alumno</button>
+    </form>
+
+    <!-- Lista de alumnos -->
+    <h2>Lista de Alumnos</h2>
+    <ul>
+        {% for student in students %}
+            <li>ID: {{ student[0] }} - {{ student[1] }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

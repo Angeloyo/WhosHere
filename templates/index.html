@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Streaming y Lista de Alumnos</title>
+</head>
+<body>
+    <h1>Streaming y Lista de Alumnos</h1>
+    <div style="display: flex;">
+        <!-- Feed de la cámara -->
+        <div>
+            <img src="/video_feed" alt="Video en Vivo">
+        </div>
+        <!-- Lista de alumnos -->
+        <div>
+            <h2>Alumnos</h2>
+            <ul>
+                {% for student in students %}
+                    <li>{{ student[1] }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
