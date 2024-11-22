@@ -1,31 +1,27 @@
-from flask import Flask, request, Response, render_template, redirect, url_for, send_file
+from flask import Flask, render_template, redirect, url_for, send_file, request, Response
+from flask_socketio import SocketIO, emit
 from database import init_db, add_student, delete_student, get_students
 import cv2
-from pyzbar.pyzbar import decode  # Librería para decodificar QR
+from pyzbar.pyzbar import decode
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
 init_db()
 
 # Configuración general
-USE_WEBCAM = True  # Cambia a False para usar el ESP32-CAM
-WEB_CAM_INDEX = 0  # Índice de la webcam local
+USE_WEBCAM = True
+WEB_CAM_INDEX = 0
 ESP32_URL = "http://<IP_DEL_ESP32>/stream"
 
-# Configuración del video
-FRAME_WIDTH = 640    # Ancho del video (cambia a 0 para usar el predeterminado)
-FRAME_HEIGHT = 480   # Alto del video (cambia a 0 para usar el predeterminado)
-
-# Lista de alumnos detectados (IDs en verde)
+FRAME_WIDTH = 640
+FRAME_HEIGHT = 480
 present_students = set()
 
 @app.route('/')
 def index():
     students = get_students()
-    students_with_status = [
-        (student[0], student[1], str(student[0]) in present_students)
-        for student in students
-    ]
-    return render_template('index.html', students=students_with_status)
+    return render_template('index.html', students=students)
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
@@ -56,35 +52,25 @@ def generar_frames():
     if FRAME_WIDTH > 0 and FRAME_HEIGHT > 0:
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
+    
     while True:
         success, frame = cap.read()
         if not success:
             break
         
-        # Decodificar QR en el frame
         decoded_objects = decode(frame)
-        if decoded_objects:
-            print(f"[INFO] Se detectaron {len(decoded_objects)} códigos QR.")
-        else:
-            print("[INFO] No se detectaron códigos QR en este frame.")
-
         for obj in decoded_objects:
-            qr_data = obj.data.decode('utf-8')  # Convertir el contenido del QR a texto
-            print(f"[INFO] Código QR detectado: {qr_data}")
-
-            # Separar el ID del contenido del QR
-            qr_id = qr_data.split('|')[0]  # Tomar solo el ID antes del separador "|"
-            print(f"[DEBUG] ID extraído del QR: {qr_id}")
-
-            # Verificar si el ID coincide con algún alumno
+            qr_data = obj.data.decode('utf-8')
+            qr_id = qr_data.split('|')[0]  # Extraer el ID
             student_ids = [str(student[0]) for student in get_students()]
-            if qr_id in student_ids:
-                print(f"[INFO] El ID {qr_id} coincide con un alumno.")
-                present_students.add(qr_id)  # Marcar al alumno como presente
+            if qr_id in student_ids and qr_id not in present_students:
+                present_students.add(qr_id)
+                print(f"[INFO] QR válido: {qr_id}")
+                # Emitir el evento al cliente
+                socketio.emit('update_student', {'id': qr_id})
             else:
-                print(f"[WARNING] El ID {qr_id} no coincide con ningún alumno.")
+                print(f"[WARNING] QR inválido o ya registrado: {qr_id}")
 
-        # Mostrar el frame original
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
@@ -96,4 +82,4 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+    socketio.run(app, host='0.0.0.0', port=5001)

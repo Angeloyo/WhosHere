@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>Streaming y Lista de Alumnos</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.3/socket.io.min.js"></script>
+    <style>
+        .present {
+            color: green;
+        }
+        .absent {
+            color: black;
+        }
+    </style>
 </head>
 <body>
     <h1>Streaming y Lista de Alumnos</h1>
@@ -14,14 +23,28 @@
         <!-- Lista de alumnos -->
         <div>
             <h2>Alumnos</h2>
-            <ul>
+            <ul id="student-list">
                 {% for student in students %}
-                    <li style="color: {{ 'green' if student[2] else 'black' }};">
+                    <li id="student-{{ student[0] }}" class="{% if student[2] %}present{% else %}absent{% endif %}">
                         ID: {{ student[0] }} - {{ student[1] }}
                     </li>
                 {% endfor %}
             </ul>
         </div>
     </div>
+
+    <script>
+        const socket = io();
+
+        // Escuchar actualizaciones del servidor
+        socket.on('update_student', function(data) {
+            const studentId = data.id;
+            const studentElement = document.getElementById(`student-${studentId}`);
+            if (studentElement) {
+                studentElement.classList.remove('absent');
+                studentElement.classList.add('present');
+            }
+        });
+    </script>
 </body>
 </html>
