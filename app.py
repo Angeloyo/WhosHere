@@ -5,14 +5,18 @@ import cv2
 app = Flask(__name__)
 init_db()
 
-# Cambia esta variable entre "webcam" o la URL del ESP32
-USE_WEBCAM = True  # Ponlo en False para usar el ESP32-CAM
+# Configuración general
+USE_WEBCAM = True  # Cambia a False para usar el ESP32-CAM
 WEB_CAM_INDEX = 0  # Índice de la webcam local
 ESP32_URL = "http://<IP_DEL_ESP32>/stream"
 
+# Configuración del video
+FRAME_WIDTH = 640    # Ancho del video (cambia a 0 para usar el predeterminado)
+FRAME_HEIGHT = 480   # Alto del video (cambia a 0 para usar el predeterminado)
+
 @app.route('/')
 def index():
-    students = get_students()  # Esto obtiene los datos de la base de datos
+    students = get_students()
     return render_template('index.html', students=students)
 
 @app.route('/admin', methods=['GET', 'POST'])
@@ -31,22 +35,23 @@ def admin():
 
 @app.route('/qrcodes/<int:student_id>')
 def get_qr(student_id):
-    # Enviar el archivo QR correspondiente
     filepath = f"qrcodes/{student_id}.png"
     return send_file(filepath, mimetype='image/png')
 
 def generar_frames():
-    # Selecciona la fuente de video: webcam o ESP32-CAM
     if USE_WEBCAM:
         cap = cv2.VideoCapture(WEB_CAM_INDEX)
     else:
         cap = cv2.VideoCapture(ESP32_URL)
     
+    if FRAME_WIDTH > 0 and FRAME_HEIGHT > 0:
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
+    
     while True:
         success, frame = cap.read()
         if not success:
             break
-        # Procesar el frame aquí si hace falta (QR o rostro)
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
@@ -54,7 +59,6 @@ def generar_frames():
 
 @app.route('/video_feed')
 def video_feed():
-    # Genera el streaming de video desde la fuente seleccionada
     return Response(generar_frames(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
