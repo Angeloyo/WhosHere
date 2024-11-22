@@ -1,20 +1,20 @@
 from flask import Flask, request, Response, render_template, redirect, url_for, send_file
 from database import init_db, add_student, delete_student, get_students
 import cv2
-import numpy as np
 
 app = Flask(__name__)
 init_db()
 
-# Variable global para almacenar el último frame recibido
-frame_global = None
+# Cambia esta variable entre "webcam" o la URL del ESP32
+USE_WEBCAM = True  # Ponlo en False para usar el ESP32-CAM
+WEB_CAM_INDEX = 0  # Índice de la webcam local
+ESP32_URL = "http://<IP_DEL_ESP32>/stream"
 
 @app.route('/')
 def index():
     students = get_students()  # Esto obtiene los datos de la base de datos
     return render_template('index.html', students=students)
 
-# Ruta /admin: página para gestionar alumnos
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     if request.method == 'POST':
@@ -35,29 +35,28 @@ def get_qr(student_id):
     filepath = f"qrcodes/{student_id}.png"
     return send_file(filepath, mimetype='image/png')
 
-@app.route('/upload_video', methods=['POST'])
-def upload_video():
-    global frame_global
-    # Recibe el frame enviado por el cliente
-    file = request.files['video']
-    img_array = np.frombuffer(file.read(), np.uint8)
-    frame_global = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-    return "Frame recibido", 200
-
 def generar_frames():
+    # Selecciona la fuente de video: webcam o ESP32-CAM
+    if USE_WEBCAM:
+        cap = cv2.VideoCapture(WEB_CAM_INDEX)
+    else:
+        cap = cv2.VideoCapture(ESP32_URL)
+    
     while True:
-        if frame_global is not None:
-            # Codifica el frame en formato JPEG
-            _, buffer = cv2.imencode('.jpg', frame_global)
-            frame = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        success, frame = cap.read()
+        if not success:
+            break
+        # Procesar el frame aquí si hace falta (QR o rostro)
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 @app.route('/video_feed')
 def video_feed():
-    # Genera el streaming de video
+    # Genera el streaming de video desde la fuente seleccionada
     return Response(generar_frames(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=5001)
