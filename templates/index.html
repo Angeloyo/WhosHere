@@ -16,7 +16,9 @@
             <h2>Alumnos</h2>
             <ul>
                 {% for student in students %}
-                    <li>{{ student[1] }}</li>
+                    <li style="color: {{ 'green' if student[2] else 'black' }};">
+                        ID: {{ student[0] }} - {{ student[1] }}
+                    </li>
                 {% endfor %}
             </ul>
         </div>
