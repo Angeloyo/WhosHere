@@ -3,7 +3,7 @@ from database import (
     init_db, add_student, delete_student, get_students,
     add_session, get_sessions, get_present_students
 )
-from cam import generar_frames
+from cam import generar_frames, generar_frames_esp32, generar_frames_esp32_with_qr
 from flask_socketio import SocketIO
 
 app = Flask(__name__)
@@ -38,6 +38,11 @@ def video_feed(session_id):
     return Response(generar_frames(socketio, session_id),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route('/esp32_feed/<int:session_id>')
+def esp32_feed(session_id):
+    esp32_url = "http://192.168.0.186:81/stream"  # Cambia por la IP de tu ESP32-CAM
+    return Response(generar_frames_esp32_with_qr(socketio, session_id, esp32_url),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/qrcodes/<int:student_id>')
 def get_qr(student_id):
