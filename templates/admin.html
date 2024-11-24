@@ -28,6 +28,28 @@
         <button type="submit">Eliminar Alumno</button>
     </form>
 
+    <!-- Formulario para añadir sesión -->
+    <h2>Administrar Sesiones</h2>
+    <form method="POST">
+        <input type="hidden" name="action" value="add_session">
+        <label for="subject">Asignatura:</label>
+        <input type="text" name="subject" placeholder="Introduce el nombre de la asignatura" required>
+        <label for="date">Fecha:</label>
+        <input type="date" name="date" required>
+        <button type="submit">Añadir Sesión</button>
+    </form>
+
+    <!-- Selección de sesión para consultar asistencia -->
+    <form method="GET" action="/attendance">
+        <label for="session_id">Selecciona una Sesión:</label>
+        <select name="session_id" required>
+            {% for session in sessions %}
+                <option value="{{ session[0] }}">{{ session[1] }} - {{ session[2] }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Ver Asistencia</button>
+    </form>
+
     <!-- Lista de alumnos -->
     <h2>Lista de Alumnos</h2>
     <ul>
@@ -38,5 +60,9 @@
             </li>
         {% endfor %}
     </ul>
+
+    <a href="{{ url_for('index') }}">
+        <button>Ir al página principal</button>
+    </a>
 </body>
 </html>

@@ -2,49 +2,24 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Streaming y Lista de Alumnos</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.3/socket.io.min.js"></script>
-    <style>
-        .present {
-            color: green;
-        }
-        .absent {
-            color: black;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sesiones</title>
 </head>
 <body>
-    <h1>Streaming y Lista de Alumnos</h1>
-    <div style="display: flex;">
-        <!-- Feed de la cámara -->
-        <div>
-            <img src="/video_feed" alt="Video en Vivo">
-        </div>
-        <!-- Lista de alumnos -->
-        <div>
-            <h2>Alumnos</h2>
-            <ul id="student-list">
-                {% for student in students %}
-                    <li id="student-{{ student[0] }}" class="{% if student[2] %}present{% else %}absent{% endif %}">
-                        ID: {{ student[0] }} - {{ student[1] }}
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
+    <h1>Listado de Sesiones</h1>
+    <ul>
+        {% for session in sessions %}
+            <li>
+                {{ session[1] }} - Fecha: {{ session[2] }}
+                <a href="{{ url_for('attendance', session_id=session[0]) }}">
+                    <button>Pasar Asistencia</button>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
 
-    <script>
-        const socket = io();
-
-        // Escuchar actualizaciones del servidor
-        socket.on('update_student', function(data) {
-            const studentId = data.id;
-            const studentElement = document.getElementById(`student-${studentId}`);
-            if (studentElement) {
-                studentElement.classList.remove('absent');
-                studentElement.classList.add('present');
-            }
-        });
-    </script>
+    <a href="{{ url_for('admin') }}">
+        <button>Ir al Panel de Administración</button>
+    </a>
 </body>
 </html>

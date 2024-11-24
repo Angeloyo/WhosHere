@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pasar Asistencia</title>
+    <style>
+        .student-list li {
+            padding: 5px 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .student-list .present {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .student-list .absent {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.3/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Pasar Asistencia</h1>
+    <div>
+        <img src="/video_feed/{{ session_id }}" alt="Streaming en Vivo">
+    </div>
+    <h2>Lista de Alumnos</h2>
+    <ul id="student-list" class="student-list">
+        {% for student in students %}
+            <li id="student-{{ student[0] }}" class="{{ 'present' if student[2] else 'absent' }}">
+                {{ student[1] }}
+            </li>
+        {% endfor %}
+    </ul>
+
+    <a href="{{ url_for('admin') }}">
+        <button>Ir al Panel de Administración</button>
+    </a>
+    <a href="{{ url_for('index') }}">
+        <button>Ir a página principal</button>
+    </a>
+
+    <script>
+        const socket = io();
+
+        // Escuchar evento de actualización
+        socket.on('update_student', function(data) {
+            const studentId = data.id;
+            const studentElement = document.getElementById(`student-${studentId}`);
+            if (studentElement) {
+                studentElement.classList.remove('absent');
+                studentElement.classList.add('present');
+            }
+        });
+    </script>
+</body>
+</html>
