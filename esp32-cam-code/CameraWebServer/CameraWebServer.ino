@@ -88,7 +88,7 @@ void setup() {
   //   config.fb_count = 1;
   // }
 
-  config.frame_size = FRAMESIZE_SVGA;
+  config.frame_size = FRAMESIZE_VGA;
   config.jpeg_quality = 10;
   config.fb_count = 2;
 
