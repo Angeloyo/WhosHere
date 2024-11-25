@@ -1,60 +1,52 @@
 
-from pyzbar.pyzbar import decode
+# from pyzbar.pyzbar import decode
 import cv2
 import numpy as np
 import requests
+from database import mark_attendance
 
-import cv2
-from pyzbar.pyzbar import decode
-import numpy as np
-
-def generar_frames(socketio, session_id, width=640, height=480):
+def generate_frames_webcam(socketio, session_id, width=640, height=480):
     """
-    Genera frames para el streaming, detecta QR, y emite eventos al cliente.
-    :param socketio: Instancia de Socket.IO para emitir eventos.
-    :param session_id: ID de la sesión para marcar asistencia.
-    :param width: Ancho del video.
-    :param height: Alto del video.
+    Generates frames for streaming, detects a single QR code with OpenCV, and emits events to the client.
     """
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
-    detected_ids = set()  # Almacenar IDs ya detectados para evitar duplicados
+    qr_decoder = cv2.QRCodeDetector()
+    detected_ids = set()
 
     while True:
         success, frame = cap.read()
         if not success:
             break
 
-        # Detectar códigos QR
-        decoded_objects = decode(frame)
-        for obj in decoded_objects:
-            qr_data_id = obj.data.decode('utf-8').split('|')[0]  # ID del alumno
-            qr_data_name = obj.data.decode('utf-8').split('|')[1]  # nombre del alumno
+        # Detect and decode a single QR code
+        qr_data, points, _ = qr_decoder.detectAndDecode(frame)
+        if qr_data:
+            qr_data_id, qr_data_name = qr_data.split('|')  # Assumes format "ID|Name"
             if qr_data_id not in detected_ids:
                 detected_ids.add(qr_data_id)
 
-                # Marcar asistencia en la base de datos
-                from database import mark_attendance
+                # Mark attendance in the database
                 mark_attendance(student_id=qr_data_id, session_id=session_id)
 
-                # Emitir evento para actualizar al cliente
-                socketio.emit('update_student', {'id': qr_data_id})
+                # Emit event to update the client
+                socketio.emit('update_student', {'id': qr_data_id}, namespace='/')
 
-            # Dibujar un recuadro alrededor del QR
-            points = obj.polygon
-            if len(points) == 4:
-                pts = [(point.x, point.y) for point in points]
-                pts = np.array(pts, dtype=np.int32)
-                cv2.polylines(frame, [pts], isClosed=True, color=(0, 255, 0), thickness=2)
+            # Draw a rectangle around the QR code
+            if points is not None and len(points) > 0:
+                points = points[0].astype(int)  # Convert to integers
+                for i in range(len(points)):
+                    pt1 = tuple(points[i])
+                    pt2 = tuple(points[(i + 1) % len(points)])
+                    cv2.line(frame, pt1, pt2, (0, 255, 0), 2)
 
-            # Mostrar el ID del QR en el video
-            (x, y, w, h) = obj.rect
-            cv2.putText(frame, qr_data_name, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-            # cv2.putText(frame, qr_data_id, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                # Display the QR code ID on the video
+                x, y = points[0]  # Coordinate of the first point
+                cv2.putText(frame, qr_data_name, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
-        # Codificar el frame para el streaming
+        # Encode the frame for streaming
         _, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
@@ -62,80 +54,63 @@ def generar_frames(socketio, session_id, width=640, height=480):
 
     cap.release()
 
-def generar_frames_esp32(url):
+def generate_frames_esp32(socketio, session_id, url):
     """
-    Genera frames desde un flujo MJPEG de un ESP32-CAM.
-    :param url: URL del flujo MJPEG (por ejemplo, http://192.168.0.101:81/stream).
-    """
-    stream = requests.get(url, stream=True)
-    bytes_data = b''
-    for chunk in stream.iter_content(chunk_size=1024):
-        bytes_data += chunk
-        a = bytes_data.find(b'\xff\xd8')  # Inicio del JPEG
-        b = bytes_data.find(b'\xff\xd9')  # Fin del JPEG
-        if a != -1 and b != -1:
-            jpg = bytes_data[a:b+2]
-            bytes_data = bytes_data[b+2:]
-            frame = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
-            _, buffer = cv2.imencode('.jpg', frame)
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-            
-def generar_frames_esp32_with_qr(socketio, session_id, url):
-    """
-    Genera frames desde un flujo MJPEG de un ESP32-CAM y detecta QR.
-    :param socketio: Instancia de Socket.IO para emitir eventos.
-    :param session_id: ID de la sesión para registrar asistencia.
-    :param url: URL del flujo MJPEG.
+    Generates frames from an MJPEG stream of an ESP32-CAM and detects QR codes using OpenCV.
+    :param socketio: Instance of Socket.IO to emit events.
+    :param session_id: Session ID for recording attendance.
+    :param url: MJPEG stream URL.
     """
     stream = requests.get(url, stream=True)
     bytes_data = b''
     detected_ids = set()
+    qr_code_detector = cv2.QRCodeDetector()
 
     for chunk in stream.iter_content(chunk_size=1024):
         bytes_data += chunk
-        a = bytes_data.find(b'\xff\xd8')  # Inicio del JPEG
-        b = bytes_data.find(b'\xff\xd9')  # Fin del JPEG
+        a = bytes_data.find(b'\xff\xd8')  # Start of JPEG
+        b = bytes_data.find(b'\xff\xd9')  # End of JPEG
         if a != -1 and b != -1:
             jpg = bytes_data[a:b+2]
             bytes_data = bytes_data[b+2:]
-            frame = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
 
-            # Detectar códigos QR
-            # decoded_objects = decode(frame)
-            # for obj in decoded_objects:
-            #     qr_data = obj.data.decode('utf-8').split('|')[0]
-            #     if qr_data not in detected_ids:
-            #         detected_ids.add(qr_data)
-            #         from database import mark_attendance
-            #         mark_attendance(student_id=qr_data, session_id=session_id)
-            #         socketio.emit('update_student', {'id': qr_data}, namespace='/')
-            decoded_objects = decode(frame)
-            for obj in decoded_objects:
-                qr_data_id = obj.data.decode('utf-8').split('|')[0]  # ID del alumno
-                qr_data_name = obj.data.decode('utf-8').split('|')[1]  # nombre del alumno
+            # Validate that the buffer is not empty
+            if len(jpg) == 0:
+                continue  # Skip this frame if the buffer is empty
+
+            frame = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
+            
+            # Check if decoding was successful
+            if frame is None:
+                continue  # Skip this frame if decoding failed
+
+            # Detect QR codes with OpenCV
+            data, points, _ = qr_code_detector.detectAndDecode(frame)
+            if data:
+                qr_data_id = data.split('|')[0]  # Student ID
+                qr_data_name = data.split('|')[1] if '|' in data else 'Unknown'  # Student name (optional)
                 if qr_data_id not in detected_ids:
                     detected_ids.add(qr_data_id)
 
-                    # Marcar asistencia en la base de datos
-                    from database import mark_attendance
+                    # Mark attendance in the database
                     mark_attendance(student_id=qr_data_id, session_id=session_id)
 
-                    # Emitir evento para actualizar al cliente
+                    # Emit event to update the client
                     socketio.emit('update_student', {'id': qr_data_id})
 
-                # Dibujar un recuadro alrededor del QR
-                points = obj.polygon
-                if len(points) == 4:
-                    pts = [(point.x, point.y) for point in points]
-                    pts = np.array(pts, dtype=np.int32)
-                    cv2.polylines(frame, [pts], isClosed=True, color=(0, 255, 0), thickness=2)
+                # Draw a rectangle around the QR code
+                if points is not None and len(points) > 0:
+                    points = points[0].astype(int)  # Convert to integers
+                    for i in range(len(points)):
+                        pt1 = tuple(points[i])
+                        pt2 = tuple(points[(i + 1) % len(points)])
+                        cv2.line(frame, pt1, pt2, (0, 255, 0), 2)
 
-                # Mostrar el ID del QR en el video
-                (x, y, w, h) = obj.rect
-                cv2.putText(frame, qr_data_name, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                    # Display the QR code ID on the video
+                    x, y = points[0]  # Coordinate of the first point
+                    cv2.putText(frame, qr_data_name, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
-            # Codificar el frame
+            # Encode the frame
             _, buffer = cv2.imencode('.jpg', frame)
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
