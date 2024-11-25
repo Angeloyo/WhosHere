@@ -3,7 +3,7 @@ from database import (
     init_db, add_student, delete_student, get_students,
     add_session, get_sessions, get_present_students
 )
-from cam import generar_frames_webcam, generar_frames_esp32_with_qr_opencv
+from cam import generate_frames_webcam, generate_frames_esp32
 from flask_socketio import SocketIO
 
 app = Flask(__name__)
