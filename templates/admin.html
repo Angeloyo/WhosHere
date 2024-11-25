@@ -4,65 +4,138 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de Alumnos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>Administrar Alumnos</h1>
+<body class="bg-gray-100 text-gray-900 font-sans">
+    <header class="bg-blue-500 text-white py-4">
+        <div class="container mx-auto text-center">
+            <a href="{{ url_for('index') }}" class="text-2xl font-bold">WhosHere</a>
+        </div>
+    </header>
 
-    <!-- Formulario para añadir alumno -->
-    <form method="POST">
-        <input type="hidden" name="action" value="add">
-        <label for="name">Nombre:</label>
-        <input type="text" name="name" placeholder="Introduce el nombre del alumno" required>
-        <button type="submit">Añadir Alumno</button>
-    </form>
+    <main class="container mx-auto mt-8 space-y-8">
 
-    <!-- Formulario para eliminar alumno -->
-    <form method="POST">
-        <input type="hidden" name="action" value="delete">
-        <label for="id">Selecciona un Alumno para Eliminar:</label>
-        <select name="id" required>
-            {% for student in students %}
-                <option value="{{ student[0] }}">{{ student[1] }} (ID: {{ student[0] }})</option>
-            {% endfor %}
-        </select>
-        <button type="submit">Eliminar Alumno</button>
-    </form>
+        <h1 class="text-2xl font-bold my-5">
+            Panel de administrador</h1>
 
-    <!-- Formulario para añadir sesión -->
-    <h2>Administrar Sesiones</h2>
-    <form method="POST">
-        <input type="hidden" name="action" value="add_session">
-        <label for="subject">Asignatura:</label>
-        <input type="text" name="subject" placeholder="Introduce el nombre de la asignatura" required>
-        <label for="date">Fecha:</label>
-        <input type="date" name="date" required>
-        <button type="submit">Añadir Sesión</button>
-    </form>
+        <!-- Formulario para añadir alumno -->
+        <div class="bg-white p-6 rounded shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Añadir Alumno</h2>
+            <form method="POST" class="space-y-4">
+                <input type="hidden" name="action" value="add">
+                <div>
+                    <label for="name" class="block text-gray-700 font-medium">Nombre:</label>
+                    <input type="text" name="name" placeholder="Introduce el nombre del alumno" class="w-full px-4 py-2 border rounded-md" required>
+                </div>
+                <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600">
+                    Añadir Alumno
+                </button>
+            </form>
+        </div>
 
-    <!-- Selección de sesión para consultar asistencia -->
-    <form method="GET" action="/attendance">
-        <label for="session_id">Selecciona una Sesión:</label>
-        <select name="session_id" required>
-            {% for session in sessions %}
-                <option value="{{ session[0] }}">{{ session[1] }} - {{ session[2] }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit">Ver Asistencia</button>
-    </form>
+        <!-- Formulario para eliminar alumno -->
+        <div class="bg-white p-6 rounded shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Eliminar Alumno</h2>
+            <form method="POST" class="space-y-4">
+                <input type="hidden" name="action" value="delete">
+                <div>
+                    <label for="id" class="block text-gray-700 font-medium">Selecciona un Alumno:</label>
+                    <select name="id" class="w-full px-4 py-2 border rounded-md" required>
+                        {% for student in students %}
+                            <option value="{{ student[0] }}">{{ student[1] }} (ID: {{ student[0] }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600">
+                    Eliminar Alumno
+                </button>
+            </form>
+        </div>
 
-    <!-- Lista de alumnos -->
-    <h2>Lista de Alumnos</h2>
-    <ul>
-        {% for student in students %}
-            <li>
-                ID: {{ student[0] }} - Nombre: {{ student[1] }}
-                <a href="/qrcodes/{{ student[0] }}" target="_blank">Ver QR</a>
-            </li>
-        {% endfor %}
-    </ul>
+        <div class="bg-white p-6 rounded shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Añadir Sesión</h2>
+            <form method="POST" class="space-y-4">
+                <input type="hidden" name="action" value="add_session">
+                <div>
+                    <label for="subject" class="block text-gray-700 font-medium">Asignatura:</label>
+                    <input type="text" name="subject" placeholder="Introduce el nombre de la asignatura" class="w-full px-4 py-2 border rounded-md" required>
+                </div>
+                <div>
+                    <label for="date" class="block text-gray-700 font-medium">Fecha:</label>
+                    <input type="date" name="date" id="date-field" class="w-full px-4 py-2 border rounded-md" required>
+                </div>
+                <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600">
+                    Añadir Sesión
+                </button>
+            </form>
+        </div>
+        
+        <!-- Script para establecer la fecha actual -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const dateField = document.getElementById('date-field');
+                if (dateField) {
+                    const today = new Date().toISOString().split('T')[0]; // Obtener fecha en formato YYYY-MM-DD
+                    dateField.value = today;
+                }
+            });
+        </script>
 
-    <a href="{{ url_for('index') }}">
-        <button>Ir al página principal</button>
-    </a>
+        <div class="bg-white p-6 rounded shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Eliminar Sesión</h2>
+            <form method="POST" class="space-y-4">
+                <input type="hidden" name="action" value="delete_session">
+                <div>
+                    <label for="session_id" class="block text-gray-700 font-medium">Selecciona una Sesión:</label>
+                    <select name="session_id" class="w-full px-4 py-2 border rounded-md" required>
+                        {% for session in sessions %}
+                            <option value="{{ session[0] }}">{{ session[1] }} - {{ session[2] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600">
+                    Eliminar Sesión
+                </button>
+            </form>
+        </div>
+
+        <!-- Selección de sesión para consultar asistencia -->
+        <!-- <div class="bg-white p-6 rounded shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Consultar Asistencia</h2>
+            <form method="GET" action="/attendance" class="space-y-4">
+                <div>
+                    <label for="session_id" class="block text-gray-700 font-medium">Selecciona una Sesión:</label>
+                    <select name="session_id" class="w-full px-4 py-2 border rounded-md" required>
+                        {% for session in sessions %}
+                            <option value="{{ session[0] }}">{{ session[1] }} - {{ session[2] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600">
+                    Ver Asistencia
+                </button>
+            </form>
+        </div> -->
+
+        <!-- Lista de alumnos -->
+        <div class="bg-white p-6 rounded shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Lista de Alumnos</h2>
+            <ul class="space-y-2">
+                {% for student in students %}
+                    <li class="flex justify-between items-center bg-gray-50 p-3 rounded-md shadow-sm">
+                        <span>ID: {{ student[0] }} - Nombre: {{ student[1] }}</span>
+                        <a href="/qrcodes/{{ student[0] }}" target="_blank" class="text-blue-500 hover:underline">
+                            Ver QR
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+    </main>
+
+    <footer class="bg-gray-200 text-center py-4 mt-12">
+        <p class="text-sm text-gray-600">WhosHere - Made by Angeloyo</p>
+    </footer>
 </body>
 </html>

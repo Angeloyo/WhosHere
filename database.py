@@ -65,6 +65,23 @@ def delete_student(student_id):
     conn.commit()
     conn.close()
 
+def delete_session(session_id):
+    """
+    Elimina una sesión de la base de datos.
+    :param session_id: ID de la sesión a eliminar.
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    # Eliminar la sesión
+    cursor.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+    
+    # Opcional: Eliminar registros de asistencia relacionados con la sesión
+    cursor.execute("DELETE FROM attendance WHERE session_id = ?", (session_id,))
+
+    conn.commit()
+    conn.close()
+
 # Obtener todos los alumnos
 def get_students():
     conn = sqlite3.connect(DB_NAME)

@@ -4,44 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pasar Asistencia</title>
-    <style>
-        .student-list li {
-            padding: 5px 10px;
-            margin: 5px 0;
-            border-radius: 5px;
-        }
-        .student-list .present {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .student-list .absent {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.3/socket.io.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>Pasar Asistencia</h1>
-    <div>
-        <img src="/video_feed/{{ session_id }}" alt="Streaming en Vivo">
-        <img src="/esp32_feed/{{ session_id }}" alt="Streaming en Vivo">
-    </div>
-    <h2>Lista de Alumnos</h2>
-    <ul id="student-list" class="student-list">
-        {% for student in students %}
-            <li id="student-{{ student[0] }}" class="{{ 'present' if student[2] else 'absent' }}">
-                {{ student[1] }}
-            </li>
-        {% endfor %}
-    </ul>
+<body class="bg-gray-100 text-gray-900 font-sans">
+    <header class="bg-blue-500 text-white py-4">
+        <div class="container mx-auto text-center">
+            <a href="{{ url_for('index') }}" class="text-2xl font-bold">WhosHere</a>
+        </div>
+    </header>
 
-    <a href="{{ url_for('admin') }}">
-        <button>Ir al Panel de Administración</button>
-    </a>
-    <a href="{{ url_for('index') }}">
-        <button>Ir a página principal</button>
-    </a>
+    <main class="container mx-auto mt-8">
+
+        <h1 class="text-2xl font-bold my-5">
+            Registro de asistencia</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Streaming de video -->
+            <div class="rounded overflow-hidden shadow-lg bg-white">
+                <!-- <img src="/esp32_feed/{{ session_id }}" alt="Streaming en Vivo" class="w-full"> -->
+                <img src="/esp32_feed/{{ session_id }}" alt="Streaming en Vivo" class="w-full">
+            </div>
+
+            <!-- Lista de alumnos -->
+            <div class="rounded overflow-hidden shadow-lg bg-white p-6">
+                <h2 class="text-xl font-semibold mb-4 text-center">Lista de Alumnos</h2>
+                <ul id="student-list" class="space-y-2">
+                    {% for student in students %}
+                        <li id="student-{{ student[0] }}" class="p-3 rounded-md {{ 'bg-green-100 text-green-800' if student[2] else 'bg-red-100 text-red-800' }}">
+                            {{ student[1] }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Navegación -->
+        <div class="flex justify-center space-x-4 mt-8">
+            <a href="{{ url_for('admin') }}" class="bg-gray-500 text-white px-4 py-2 rounded shadow hover:bg-gray-600">Ir al Panel de Administración</a>
+        </div>
+    </main>
+
+    <footer class="bg-gray-200 text-center py-4 mt-12">
+        <p class="text-sm text-gray-600">WhosHere - Made by Angeloyo</p>
+    </footer>
 
     <script>
         const socket = io();
@@ -51,8 +57,8 @@
             const studentId = data.id;
             const studentElement = document.getElementById(`student-${studentId}`);
             if (studentElement) {
-                studentElement.classList.remove('absent');
-                studentElement.classList.add('present');
+                studentElement.classList.remove('bg-red-100', 'text-red-800');
+                studentElement.classList.add('bg-green-100', 'text-green-800');
             }
         });
     </script>

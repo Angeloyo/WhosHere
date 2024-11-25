@@ -36,6 +36,7 @@
 // ===========================
 // Enter your WiFi credentials
 // ===========================
+// me he doxeado yo solito, increible
 const char *ssid = "Casa";
 const char *password = "10062470";
 
@@ -88,6 +89,7 @@ void setup() {
   //   config.fb_count = 1;
   // }
 
+  // config.frame_size = FRAMESIZE_sVGA;
   config.frame_size = FRAMESIZE_VGA;
   config.jpeg_quality = 10;
   config.fb_count = 2;

@@ -1,8 +1,5 @@
 from flask import Flask, request, render_template, redirect, url_for, Response, send_file
-from database import (
-    init_db, add_student, delete_student, get_students,
-    add_session, get_sessions, get_present_students
-)
+from database import *
 from cam import generate_frames_webcam, generate_frames_esp32
 from flask_socketio import SocketIO
 
@@ -50,6 +47,7 @@ def get_qr(student_id):
     return send_file(filepath, mimetype='image/png')
 
 # Rutas Administrativas
+# Rutas Administrativas
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     if request.method == 'POST':
@@ -64,6 +62,9 @@ def admin():
             subject = request.form['subject']
             date = request.form['date']
             add_session(subject, date)
+        elif action == 'delete_session':
+            session_id = request.form['session_id']
+            delete_session(session_id)  # Llama a la función para eliminar la sesión
         return redirect(url_for('admin'))
 
     students = get_students()

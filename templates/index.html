@@ -4,22 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sesiones</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>Listado de Sesiones</h1>
-    <ul>
-        {% for session in sessions %}
-            <li>
-                {{ session[1] }} - Fecha: {{ session[2] }}
-                <a href="{{ url_for('attendance', session_id=session[0]) }}">
-                    <button>Pasar Asistencia</button>
-                </a>
-            </li>
-        {% endfor %}
-    </ul>
+<body class="bg-gray-100 text-gray-900 font-sans">
+    <header class="bg-blue-500 text-white py-4">
+        <div class="container mx-auto text-center">
+            <a  href="{{ url_for('index') }}" class="text-2xl font-bold">WhosHere</a>
+        </div>
+    </header>
 
-    <a href="{{ url_for('admin') }}">
-        <button>Ir al Panel de Administración</button>
-    </a>
+    <main class="container mx-auto mt-8">
+        
+        <h1 class="text-2xl font-bold my-5">
+            Sesiones</h1>
+
+        <ul class="space-y-4">
+            {% for session in sessions %}
+                <li class="flex justify-between items-center bg-white shadow-md rounded-md p-4">
+                    <div>
+                        <p class="text-lg font-semibold">{{ session[1] }}</p>
+                        <p class="text-sm text-gray-600">Fecha: {{ session[2] }}</p>
+                    </div>
+                    <a href="{{ url_for('attendance', session_id=session[0]) }}" class="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600">
+                        Pasar Asistencia
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Navegación -->
+        <div class="flex justify-center mt-8">
+            <a href="{{ url_for('admin') }}" class="bg-gray-500 text-white px-4 py-2 rounded shadow hover:bg-gray-600">
+                Ir al Panel de Administración
+            </a>
+        </div>
+    </main>
+
+    <footer class="bg-gray-200 text-center py-4 mt-12">
+        <p class="text-sm text-gray-600">WhosHere - Made by Angeloyo</p>
+    </footer>
 </body>
 </html>
