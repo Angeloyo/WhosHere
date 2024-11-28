@@ -29,8 +29,8 @@ def attendance():
     return render_template('attendance.html', students=students_with_status, session_id=session_id)
 
 # Ruta para el streaming de video
-@app.route('/video_feed/<int:session_id>')
-def video_feed(session_id):
+@app.route('/webcam_feed/<int:session_id>')
+def webcam_feed(session_id):
     # Streaming de video con detección de QR
     return Response(generate_frames_webcam(socketio, session_id),
                     mimetype='multipart/x-mixed-replace; boundary=frame')

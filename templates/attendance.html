@@ -22,8 +22,8 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <!-- Streaming de video -->
             <div class="rounded overflow-hidden shadow-lg bg-white">
-                <!-- <img src="/esp32_feed/{{ session_id }}" alt="Streaming en Vivo" class="w-full"> -->
-                <img src="/esp32_feed/{{ session_id }}" alt="Streaming en Vivo" class="w-full">
+                <img src="/webcam_feed/{{ session_id }}" alt="Streaming en Vivo" class="w-full">
+                <!-- <img src="/esp32_sfeed/{{ session_id }}" alt="Streaming en Vivo" class="w-full"> -->
             </div>
 
             <!-- Lista de alumnos -->
@@ -45,9 +45,9 @@
         </div>
     </main>
 
-    <footer class="bg-gray-200 text-center py-4 mt-12">
+    <!-- <footer class="bg-gray-200 text-center py-4 mt-12">
         <p class="text-sm text-gray-600">WhosHere - Made by Angeloyo</p>
-    </footer>
+    </footer> -->
 
     <script>
         const socket = io();

@@ -1,6 +1,7 @@
 import cv2
 from deepface import DeepFace
 import os
+from database import mark_attendance
 
 # Ruta de los rostros registrados
 REGISTERED_FACES_DIR = "registered_faces"
@@ -16,7 +17,7 @@ for file in os.listdir(REGISTERED_FACES_DIR):
 
 # Ruta de las imágenes registradas
 REGISTERED_FACES_DIR = "registered_faces"
-detected_faces = set()  # Para evitar múltiples reconocimientos del mismo rostro
+detected_faces = {}  # Diccionario para almacenar los IDs detectados por sesión
 
 def face_recognition(socketio, frame, session_id):
     """
@@ -27,47 +28,45 @@ def face_recognition(socketio, frame, session_id):
     """
     global detected_faces
 
-    # Guardar frame temporalmente para procesamiento
+    # Inicializar el conjunto para la sesión actual si no existe
+    if session_id not in detected_faces:
+        detected_faces[session_id] = set()
+
+    # Save the frame temporarily for processing
     temp_frame_path = "temp_frame.jpg"
     cv2.imwrite(temp_frame_path, frame)
 
-    face_locations = []  # Almacenar ubicaciones de rostros detectados
+    try:
+        # Compare the frame with registered faces
+        results = DeepFace.find(img_path=temp_frame_path, db_path=REGISTERED_FACES_DIR, enforce_detection=False)
 
-    # Iterar sobre las imágenes registradas
-    for file in os.listdir(REGISTERED_FACES_DIR):
-        if file.endswith(".jpg") or file.endswith(".png"):
-            student_id, _ = file.split("_", 1)
-            face_path = os.path.join(REGISTERED_FACES_DIR, file)
+        # Process results from DeepFace.find (list of DataFrames)
+        for df in results:
+            if not df.empty:
+                for _, row in df.iterrows():
+                    student_id = os.path.basename(row["identity"]).split("_")[0]  # Extract student ID from filename
+                    if student_id not in detected_faces[session_id]:
+                        detected_faces[session_id].add(student_id)
 
-            try:
-                # Comparar el frame con la imagen registrada
-                result = DeepFace.verify(temp_frame_path, face_path, enforce_detection=True)
-                if result["verified"] and student_id not in detected_faces:
-                    detected_faces.add(student_id)
+                        # Mark attendance in the database
+                        mark_attendance(student_id=student_id, session_id=session_id)
 
-                    # Marcar asistencia en la base de datos
-                    from database import mark_attendance
-                    mark_attendance(student_id=student_id, session_id=session_id)
+                        # Emit event to the client
+                        socketio.emit('update_student', {'id': student_id}, namespace='/')
 
-                    # Emitir evento al cliente
-                    socketio.emit('update_student', {'id': student_id}, namespace='/')
+                        print(f"Face recognized: {student_id}")
 
-                    print(f"Face recognized: {student_id}")
-                    
-                    # Draw a rectangle if facial_area exists
-                    if "facial_area" in result:
-                        face_area = result["facial_area"]
-                        x, y, w, h = face_area["x"], face_area["y"], face_area["w"], face_area["h"]
-                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        # Use OpenCV's face detection to draw rectangles
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray_frame, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
-            except Exception as e:
-                print(f"Error processing face: {e}")
+        for (x, y, w, h) in faces:
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-    # Dibujar recuadros en los rostros detectados
-    for loc in face_locations:
-        x, y, w, h = loc["x"], loc["y"], loc["w"], loc["h"]
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-    # Eliminar el archivo temporal
-    if os.path.exists(temp_frame_path):
-        os.remove(temp_frame_path)
+    except Exception as e:
+        print(f"Error processing face: {e}")
+    finally:
+        # Remove the temporary file
+        if os.path.exists(temp_frame_path):
+            os.remove(temp_frame_path)

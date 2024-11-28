@@ -20,6 +20,10 @@ def generate_frames_webcam(socketio, session_id, width=640, height=480):
             break
 
         qr_recognition(socketio, frame, session_id)
+        face_recognition(socketio, frame, session_id)
+
+        # to-do :
+        # only mark attendance when student id from qr and face recognition match !
 
         # Encode the frame for streaming
         _, buffer = cv2.imencode('.jpg', frame)
