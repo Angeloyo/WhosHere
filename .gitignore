@@ -6,3 +6,5 @@ qrcodes/
 WPy64-31260/
 registered_faces/*
 .DS_Store
+no-upload/
+temp_face.jpg

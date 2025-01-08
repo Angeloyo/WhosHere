@@ -22,8 +22,8 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <!-- Streaming de video -->
             <div class="rounded overflow-hidden shadow-lg bg-white">
-                <img src="/webcam_feed/{{ session_id }}" alt="Streaming en Vivo" class="w-full">
-                <!-- <img src="/esp32_sfeed/{{ session_id }}" alt="Streaming en Vivo" class="w-full"> -->
+                <!-- <img src="/webcam_feed/{{ session_id }}" alt="Streaming en Vivo" class="w-full"> -->
+                <img src="/esp32_feed/{{ session_id }}" alt="Streaming en Vivo" class="w-full">
             </div>
 
             <!-- Lista de alumnos -->
@@ -45,6 +45,15 @@
         </div>
     </main>
 
+    <div id="pinVerification" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-xl">
+            <h2 class="text-xl mb-4">Hola <span id="studentName"></span></h2>
+            <p>Para confirmar tu asistencia, introduce el PIN:</p>
+            <div class="text-3xl font-bold my-4" id="expectedPin"></div>
+            <div id="enteredPin" class="text-2xl mb-4">____</div>
+        </div>
+    </div>
+
     <!-- <footer class="bg-gray-200 text-center py-4 mt-12">
         <p class="text-sm text-gray-600">WhosHere - Made by Angeloyo</p>
     </footer> -->
@@ -60,6 +69,34 @@
                 studentElement.classList.remove('bg-red-100', 'text-red-800');
                 studentElement.classList.add('bg-green-100', 'text-green-800');
             }
+        });
+
+        socket.on('request_pin', function(data) {
+            console.log('request_pin');
+            console.log(data);
+            document.getElementById('pinVerification').classList.remove('hidden');
+            document.getElementById('studentName').textContent = data.student_name;
+            document.getElementById('expectedPin').textContent = data.pin;
+            document.getElementById('enteredPin').textContent = '____';
+        });
+        
+        socket.on('key_pressed', function(data) {
+            console.log('key_pressed');
+            console.log(data);
+            let current = document.getElementById('enteredPin').textContent;
+            current = current.replace('_', data.key);
+            document.getElementById('enteredPin').textContent = current;
+        });
+        
+        socket.on('pin_correct', function() {
+            document.getElementById('pinVerification').classList.add('hidden');
+            // Actualizar la lista de estudiantes
+            location.reload();
+        });
+        
+        socket.on('pin_wrong', function() {
+            document.getElementById('enteredPin').textContent = '____';
+            alert('PIN incorrecto. Inténtalo de nuevo.');
         });
     </script>
 </body>

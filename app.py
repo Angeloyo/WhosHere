@@ -1,7 +1,9 @@
-from flask import Flask, request, render_template, redirect, url_for, Response, send_file
+from flask import Flask, request, render_template, redirect, url_for, Response, send_file, jsonify
 from database import *
 from cam import generate_frames_webcam, generate_frames_esp32
 from flask_socketio import SocketIO
+from pin_state import pin_state
+from detected_faces_state import detected_faces_state
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -10,23 +12,47 @@ init_db()
 # Rutas Generales
 @app.route('/')
 def index():
+    pin_state.expected_pin = None
+    pin_state.current_student_id = None 
+    pin_state.current_session_id = None
+    pin_state.waiting_for_pin = False
+    pin_state.current_pin = ""
+    detected_faces_state.clear_all()  # Limpiar todas las sesiones
     sessions = get_sessions()
     return render_template('index.html', sessions=sessions)
 
 # Ruta principal para mostrar el feed y la lista de alumnos
 @app.route('/attendance', methods=['GET'])
 def attendance():
-    session_id = request.args.get('session_id', type=int, default=1)  # ID de la sesión actual
-    students = get_students()  # Obtener lista de todos los alumnos
-    present_students = get_present_students(session_id)  # Obtener IDs de alumnos presentes
-
+    session_id = request.args.get('session_id', type=int, default=1)
+    
+    # Reiniciar el estado del PIN para la nueva sesión
+    pin_state.expected_pin = None
+    pin_state.current_student_id = None
+    pin_state.current_session_id = None
+    pin_state.waiting_for_pin = False
+    pin_state.current_pin = ""
+    
+    # Inicializar/actualizar el estado de detected_faces para esta sesión
+    detected_faces_state.init_session(session_id)
+    
+    # Obtener los estudiantes que ya han pasado lista y actualizar detected_faces
+    present_students = get_present_students(session_id)
+    for student_id in present_students:
+        detected_faces_state.add_face(session_id, str(student_id))  # Convertir a string si es necesario
+    
+    # Obtener lista de todos los alumnos
+    students = get_students()
+    
     # Añadir información de estado a cada alumno
     students_with_status = [
         (student[0], student[1], student[0] in present_students)
         for student in students
     ]
-
-    return render_template('attendance.html', students=students_with_status, session_id=session_id)
+    
+    return render_template('attendance.html', 
+                         students=students_with_status, 
+                         session_id=session_id)
 
 # Ruta para el streaming de video
 @app.route('/webcam_feed/<int:session_id>')
@@ -71,5 +97,30 @@ def admin():
     sessions = get_sessions()
     return render_template('admin.html', students=students, sessions=sessions)
 
+@app.route('/keypress')
+def handle_keypress():
+    key = request.args.get('key')
+    
+    if pin_state.waiting_for_pin:
+        socketio.emit('key_pressed', {'key': key})
+        
+        pin_state.current_pin += key
+        if len(pin_state.current_pin) == 4:
+            if pin_state.current_pin == pin_state.expected_pin:
+                # Marcar asistencia
+                mark_attendance(pin_state.current_student_id, pin_state.current_session_id)
+                # Añadir a detected_faces_state
+                detected_faces_state.add_face(pin_state.current_session_id, pin_state.current_student_id)
+                socketio.emit('pin_correct')
+                socketio.emit('update_student', {'id': pin_state.current_student_id})
+            else:
+                socketio.emit('pin_wrong')
+            
+            pin_state.current_pin = ""
+            pin_state.waiting_for_pin = False
+            
+    return jsonify({"status": "received"})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)
+    # socketio.run(app, host='0.0.0.0', port=5001)
