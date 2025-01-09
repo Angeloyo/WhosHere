@@ -121,6 +121,14 @@ def handle_keypress():
             
     return jsonify({"status": "received"})
 
+@socketio.on('wrong_student')
+def handle_wrong_student():
+    # Resetear el estado del PIN
+    pin_state.expected_pin = None
+    pin_state.current_student_id = None
+    pin_state.current_session_id = None
+    pin_state.waiting_for_pin = False
+    pin_state.current_pin = ""
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)
-    # socketio.run(app, host='0.0.0.0', port=5001)

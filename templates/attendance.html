@@ -51,6 +51,9 @@
             <p>Para confirmar tu asistencia, introduce el PIN:</p>
             <div class="text-3xl font-bold my-4" id="expectedPin"></div>
             <div id="enteredPin" class="text-2xl mb-4">____</div>
+            <button id="wrongStudentBtn" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                No soy este alumno
+            </button>
         </div>
     </div>
 
@@ -97,6 +100,14 @@
         socket.on('pin_wrong', function() {
             document.getElementById('enteredPin').textContent = '____';
             alert('PIN incorrecto. Inténtalo de nuevo.');
+        });
+
+        // Añadir el manejador del botón
+        document.getElementById('wrongStudentBtn').addEventListener('click', function() {
+            // Ocultar el modal
+            document.getElementById('pinVerification').classList.add('hidden');
+            // Resetear el estado en el servidor
+            socket.emit('wrong_student');
         });
     </script>
 </body>
